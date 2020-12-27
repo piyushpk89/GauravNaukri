@@ -64,6 +64,12 @@ def setup_driver():
 def getCandidateInfo(driver):
 
     try:
+        driver.switch_to.window(driver.window_handles[1])
+    except Exception:
+        print("Drive not Able to Switch Window ")
+
+    try:
+
         clientName= driver.find_element_by_css_selector("div.candidate-name").text
         clientResumeID= driver.find_element_by_css_selector("div.header-profile-id").text
         clientPhone= driver.find_element_by_xpath('//*[@id="contact_details_num_2"]').text
@@ -75,7 +81,7 @@ def getCandidateInfo(driver):
         clientResumeID = clientResumeID.split(":")[1].strip()
         # clientEmail = clientEmail.split(":")[1].strip()
         # clientPhone = clientPhone.split(":")[1].strip()
-        # waContact = clientName + ";91" + clientPhone
+        waContact = clientName + ";91" + clientPhone
         # clientResumeID = "http://www.keydew.tk/g/getResumeDoc.php?resId=" + clientResumeID;
 
 
@@ -103,8 +109,14 @@ def getCandidateInfo(driver):
 
 
     except Exception as e:
+        print("Error in Tag Element of HTML for client Info")
         print(str(e))
+
         traceback.print_exc()
+    finally:
+        if len(driver.window_handles)>2:
+            driver.close()
+            driver.switch_to(driver.window_handles[-1])
 
 # def thread_run(timeout,driver):
 #     # timeout refresh = 10
@@ -132,6 +144,12 @@ def getCandidateInfo(driver):
 if __name__ == '__main__':
     driver = setup_driver()
     # driver.implicitly_wait(10)
+
+    """
+    https://rb.gy/78ge6k
+    sol1220m
+    sol@ap2
+    """
     stop_threads = False
     driver.get("https://rb.gy/78ge6k")
 
@@ -154,7 +172,7 @@ if __name__ == '__main__':
                 # source_list.append(str(temp))
                 print(str(temp))
                 anchorElment.click()
-
+                getCandidateInfo(driver)
 
         print("Profile Scanning Completed .......")
         okay = input("Want to Search More ???")
