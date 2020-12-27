@@ -18,7 +18,7 @@ def setup_driver():
     chromedriver = 'chromedriver.exe'
     # anchorClient = Redis_Sadd()
     options = webdriver.ChromeOptions()
-    EXTENSION_PATH = "ofmpippaeehejklbooedhpaopdoijibh.crx"
+    EXTENSION_PATH = "extensions/recuirtment_extension.crx"
     options.add_extension(EXTENSION_PATH)
     # options.add_argument('--headless')
     options.set_capability("acceptInsecureCerts", True)
