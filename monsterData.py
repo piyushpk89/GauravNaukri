@@ -10,9 +10,8 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
+import shutil
 
-FolderDownload = "CV_" + datetime.now().strftime("%H_%M")
-folderpath = os.getcwd() + os.path.sep + FolderDownload
 
 def setup_driver():
     chromedriver = 'chromedriver.exe'
@@ -30,7 +29,8 @@ def setup_driver():
     # options.add_argument('--disable-gpu')
     # options.add_argument("--no-sandbox")
     # options.add_argument("download.default_directory=")
-    prefs = {'download.default_directory': folderpath}
+    path = os.getcwd() + os.path.sep + "cv_downloads"
+    prefs = {'download.default_directory': path}
     options.add_experimental_option('prefs', prefs)
     options.add_argument("--start-maximized")
     # options.
@@ -44,44 +44,56 @@ def setup_driver():
 
     return driver
 
-#
-# def getLatestFilename(timeNow, path, timeout):
-#     # path with ending seperator ex: D:/Mega
-#     time.sleep(1)
-#     while timeout:
-#         time.sleep(1)
-#         list_of_files = glob.glob(path+"*")
-#         latest_file = max(list_of_files, key=os.path.getctime)
-#         if os.path.getctime(latest_file)>timeNow:
-#             return latest_file
-#         timeout= timeout-1
-#
-#     return "NOT FOUND"
-#
+
+def getLatestFilename(timeNow, path, timeout):
+    # path with ending seperator ex: D:/Mega
+    time.sleep(1)
+    while timeout:
+        time.sleep(1)
+        list_of_files = glob.glob(path+"*")
+        latest_file = max(list_of_files, key=os.path.getctime)
+        if os.path.getctime(latest_file)>timeNow:
+            return latest_file
+        timeout= timeout-1
+
+    return "NOT FOUND"
+
 #
 #
 
-def getCandidateInfo(driver):
+def getCandidateInfo(driver, folderpath):
 
+    time.sleep(4)
     try:
         driver.switch_to.window(driver.window_handles[1])
     except Exception:
         print("Drive not Able to Switch Window ")
 
     try:
+        try:
+            clientName= driver.find_element_by_css_selector("div.candidate-name").text
+        except Exception:
+            clientName="NOT Found"
 
-        clientName= driver.find_element_by_css_selector("div.candidate-name").text
-        clientResumeID= driver.find_element_by_css_selector("div.header-profile-id").text
-        clientPhone= driver.find_element_by_xpath('//*[@id="contact_details_num_2"]').text
-        clientEmail= driver.find_element_by_xpath('//*[@id="contact_details_num_3"]').text
+        try:
+            clientResumeID= driver.find_element_by_css_selector("div.header-profile-id").text
+        except Exception:
+            clientResumeID = "NOT FOUND"
+        try:
+            clientPhone= driver.find_element_by_xpath('//*[@id="contact_details_num_2"]').text
+        except Exception:
+            clientPhone = "NOT FOUND"
+        try:
+            clientEmail= driver.find_element_by_xpath('//*[@id="contact_details_num_3"]').text
+        except Exception:
+            clientEmail = "NOT FOUND"
+
         time.sleep(1)
         urlLink = str(driver.current_url)
-
-
         clientResumeID = clientResumeID.split(":")[1].strip()
         # clientEmail = clientEmail.split(":")[1].strip()
         # clientPhone = clientPhone.split(":")[1].strip()
-        waContact = clientName + ";91" + clientPhone
+        waContact = clientName + ";" + clientPhone
         # clientResumeID = "http://www.keydew.tk/g/getResumeDoc.php?resId=" + clientResumeID;
 
 
@@ -91,32 +103,41 @@ def getCandidateInfo(driver):
             fp.write("\n")
 
         try:
-            #timeNow  = datetime.timestamp(datetime.now())
+            timeNow  = datetime.timestamp(datetime.now())
 
-            clientCV= driver.find_element_by_css_selector("a.downloadCv").click()
-            #path = os.getcwd() + os.path.sep + "cv_downloads" + os.path.sep
-            # time.sleep(2)
-            #clientFileName = getLatestFilename(timeNow, path, timeout=15)
+            clientCV= driver.find_element_by_css_selector("span.download-icon").click()
+            # '//*[@id="right_sticky"]/div[2]/div/div[2]/div[2]/div/span[1]'
+            path = os.getcwd() + os.path.sep + "cv_downloads" + os.path.sep
+            time.sleep(2)
+            clientFileName = getLatestFilename(timeNow, path, timeout=15)
+            if not clientFileName.__contains__("NOT FOUND"):
+                    shutil.move((os.path.join(path,clientFileName)),folderpath)
+
             # if clientFileName==0:
-            #with open("clientWithLink.csv", 'a', encoding='utf-8') as fp:
-             #   fp.write(f'"{clientName}",{clientResumeID},{clientPhone},{clientEmail},"{clientFileName}","{urlLink}"')
-              #  fp.write("\n")
+            with open("clientWithLink.csv", 'a', encoding='utf-8') as fp:
+               fp.write(f'"{clientName}",{clientResumeID},{clientPhone},{clientEmail},"{clientFileName}","{urlLink}"')
+               fp.write("\n")
 
-            #print(f'"{clientName}",{clientResumeID},{clientPhone},{clientEmail},"{clientFileName}","{urlLink}"')
+            print(f'"{clientName}",{clientResumeID},{clientPhone},{clientEmail},"{clientFileName}","{urlLink}"')
 
         except Exception as e:
             print(str(e))
 
+        driver.close()
+        driver.switch_to.window(driver.window_handles[-1])
 
     except Exception as e:
         print("Error in Tag Element of HTML for client Info")
         print(str(e))
-
-        traceback.print_exc()
-    finally:
-        if len(driver.window_handles)>2:
+        if len(driver.window_handles)>1:
             driver.close()
-            driver.switch_to(driver.window_handles[-1])
+            driver.switch_to.window(driver.window_handles[-1])
+        traceback.print_exc()
+    #
+    # finally:
+    #     if len(driver.window_handles)>1:
+    #         driver.close()
+    #         driver.switch_to(driver.window_handles[-1])
 
 # def thread_run(timeout,driver):
 #     # timeout refresh = 10
@@ -153,14 +174,26 @@ if __name__ == '__main__':
     stop_threads = False
     driver.get("https://rb.gy/78ge6k")
 
-    okay = input("Search Page is Reached ?? _")
-    driver.switch_to.window(driver.window_handles[1])
+    okay = input("Search Page is Reached ?? ")
+
+    driver.close()
+    driver.switch_to.window(driver.window_handles[-1])
+
 
     while (okay.lower() == 'y'):
         print("Start Find Div Again")
+        folderName = input("Enter Folder Name to Be created")
+        # FolderDownload = "CV_" + datetime.now().strftime("%H_%M")
+        folderpath = os.getcwd() + os.path.sep + folderName
+        if not os.path.exists(folderpath):
+            print(folderpath)
+            os.mkdir(folderpath)
+        else:
+            print("Folder Name Already Exist")
+
         rows  = driver.find_elements_by_css_selector("div.single_profile_card")
 
-        for row in rows[:2]:
+        for row in rows[:10]:
             if row.find_element_by_css_selector("input.select_single_profile").is_selected():
                 anchorElment = row.find_element_by_css_selector("div.d-flex.align-items-center").find_element_by_tag_name("a")
                 hover = ActionChains(driver).move_to_element(anchorElment)
@@ -172,7 +205,7 @@ if __name__ == '__main__':
                 # source_list.append(str(temp))
                 print(str(temp))
                 anchorElment.click()
-                getCandidateInfo(driver)
+                getCandidateInfo(driver,folderpath)
 
         print("Profile Scanning Completed .......")
         okay = input("Want to Search More ???")
