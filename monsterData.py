@@ -19,8 +19,10 @@ def setup_driver():
     options = webdriver.ChromeOptions()
     EXTENSION_PATH = "extensions/mdatabaseservice.crx"
     EXTENSION_PATH2 = "extensions/recuirtment_extension.crx"
+    EXTENSION_PATH3 = "extensions/data_miner.crx"
     options.add_extension(EXTENSION_PATH)
     options.add_extension(EXTENSION_PATH2)
+    options.add_extension(EXTENSION_PATH3)
     # options.add_argument('--headless')
     options.set_capability("acceptInsecureCerts", True)
     options.add_argument('--allow-running-insecure-content')
@@ -53,6 +55,7 @@ def getLatestFilename(timeNow, path, timeout):
         list_of_files = glob.glob(path+"*")
         latest_file = max(list_of_files, key=os.path.getctime)
         if os.path.getctime(latest_file)>timeNow:
+            print(latest_file)
             return latest_file
         timeout= timeout-1
 
@@ -72,6 +75,8 @@ def getCandidateInfo(driver, folderpath):
     try:
         try:
             clientName= driver.find_element_by_css_selector("div.candidate-name").text
+            clientName=clientName.split("NEW")[0].strip()
+
         except Exception:
             clientName="NOT Found"
 
@@ -110,11 +115,12 @@ def getCandidateInfo(driver, folderpath):
             path = os.getcwd() + os.path.sep + "cv_downloads" + os.path.sep
             time.sleep(2)
             clientFileName = getLatestFilename(timeNow, path, timeout=15)
+            print(clientFileName)
             if not clientFileName.__contains__("NOT FOUND"):
                     shutil.move((os.path.join(path,clientFileName)),folderpath)
 
             # if clientFileName==0:
-            with open("clientWithLink.csv", 'a', encoding='utf-8') as fp:
+            with open("CandidateListWithLink.csv", 'a', encoding='utf-8') as fp:
                fp.write(f'"{clientName}",{clientResumeID},{clientPhone},{clientEmail},"{clientFileName}","{urlLink}"')
                fp.write("\n")
 
@@ -173,7 +179,6 @@ if __name__ == '__main__':
     """
     stop_threads = False
     driver.get("https://rb.gy/78ge6k")
-
     okay = input("Search Page is Reached ?? ")
 
     driver.close()
@@ -181,31 +186,34 @@ if __name__ == '__main__':
 
 
     while (okay.lower() == 'y'):
-        print("Start Find Div Again")
-        folderName = input("Enter Folder Name to Be created")
+        print("Starting Processing Profile..................")
+        folderName = input("Enter Folder Name to Be created : ")
         # FolderDownload = "CV_" + datetime.now().strftime("%H_%M")
         folderpath = os.getcwd() + os.path.sep + folderName
         if not os.path.exists(folderpath):
             print(folderpath)
             os.mkdir(folderpath)
         else:
-            print("Folder Name Already Exist")
+            print("Folder Name Already Exist ")
 
         rows  = driver.find_elements_by_css_selector("div.single_profile_card")
 
         for row in rows[:10]:
-            if row.find_element_by_css_selector("input.select_single_profile").is_selected():
-                anchorElment = row.find_element_by_css_selector("div.d-flex.align-items-center").find_element_by_tag_name("a")
-                hover = ActionChains(driver).move_to_element(anchorElment)
-                hover.perform()
-                # time.sleep(1)
-                # driver.execute_script(mouseOverScript, anchorElment)
+            try:
+                if row.find_element_by_css_selector("input.select_single_profile").is_selected():
+                    anchorElment = row.find_element_by_css_selector("div.d-flex.align-items-center").find_element_by_tag_name("a")
+                    hover = ActionChains(driver).move_to_element(anchorElment)
+                    hover.perform()
+                    # time.sleep(1)
+                    # driver.execute_script(mouseOverScript, anchorElment)
 
-                temp = anchorElment.get_attribute("href")
-                # source_list.append(str(temp))
-                print(str(temp))
-                anchorElment.click()
-                getCandidateInfo(driver,folderpath)
+                    temp = anchorElment.get_attribute("href")
+                    # source_list.append(str(temp))
+                    print(str(temp))
+                    anchorElment.click()
+                    getCandidateInfo(driver,folderpath)
+            except Exception as e:
+                print(str(e))
 
         print("Profile Scanning Completed .......")
         okay = input("Want to Search More ???")
